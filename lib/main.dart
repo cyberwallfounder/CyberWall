@@ -730,3 +730,186 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                     _vaultItems.insert(
                       0,
                       VaultItem(
+                        title: titleController.text.trim(),
+                        secretData: contentController.text.trim().isEmpty ? 'Hidden Payload' : contentController.text.trim(),
+                        date: 'Just now',
+                      ),
+                    );
+                  });
+                  _saveVaultItemsToStorage();
+                }
+                Navigator.pop(context);
+              },
+              child: const Text('LOCK IN', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onLongPressStart: _startAdminHold,
+      onLongPressEnd: _cancelAdminHold,
+      child: Scaffold(
+        body: CyberBackground(
+          child: Column(
+            children: [
+              AppBar(
+                title: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    VaultLogo(size: 28),
+                    SizedBox(width: 10),
+                    Text(
+                      '// V A U L T X',
+                      style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16),
+                    ),
+                  ],
+                ),
+                centerTitle: true,
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                actions: [
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.shield_outlined, color: Colors.greenAccent),
+                    color: const Color(0xFF0D1410),
+                    onSelected: (value) {
+                      if (value == 'export') _showExportDialog();
+                      if (value == 'import') _showImportDialog();
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'export',
+                        child: Text('Backup Vault', style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace')),
+                      ),
+                      const PopupMenuItem(
+                        value: 'import',
+                        child: Text('Restore Vault', style: TextStyle(color: Colors.cyanAccent, fontFamily: 'monospace')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              PreferredSize(
+                preferredSize: const Size.fromHeight(2),
+                child: Column(
+                  children: [
+                    if (_holdProgress > 0)
+                      LinearProgressIndicator(
+                        value: _holdProgress,
+                        backgroundColor: Colors.black,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                      ),
+                    Container(color: Colors.greenAccent.withOpacity(0.3), height: 1),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Colors.greenAccent))
+                    : Stack(
+                        children: [
+                          const Center(
+                            child: Opacity(
+                              opacity: 0.05,
+                              child: VaultLogo(size: 220),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0A140E),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+                                  ),
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.lock_clock, color: Colors.greenAccent, size: 20),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'STATUS: SECURE // PERSISTENT STORAGE ACTIVE',
+                                          style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                const Text(
+                                  'STORED RECORDS',
+                                  style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 10),
+                                Expanded(
+                                  child: _vaultItems.isEmpty
+                                      ? Center(
+                                          child: Text(
+                                            'VAULT EMPTY\nTap + to store secure credentials',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(color: Colors.white24, fontFamily: 'monospace', height: 1.5),
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          itemCount: _vaultItems.length,
+                                          itemBuilder: (context, index) {
+                                            final item = _vaultItems[index];
+                                            return Container(
+                                              margin: const EdgeInsets.only(bottom: 12),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF070C09),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.greenAccent.withOpacity(0.15)),
+                                              ),
+                                              child: ListTile(
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                leading: const Icon(Icons.vpn_key_outlined, color: Colors.greenAccent),
+                                                title: Text(
+                                                  item.title,
+                                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                                ),
+                                                subtitle: Padding(
+                                                  padding: const EdgeInsets.only(top: 4.0),
+                                                  child: Text(
+                                                    item.secretData,
+                                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                                  ),
+                                                ),
+                                                trailing: Text(
+                                                  item.date,
+                                                  style: const TextStyle(color: Colors.white30, fontSize: 11),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.greenAccent,
+          foregroundColor: Colors.black,
+          onPressed: _addNewNote,
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
+  }
+} // <-- Yeh raha _VaultHomeScreenState ka proper closing brace
+
+class AdminPanelScreen extends StatelessWidget {
