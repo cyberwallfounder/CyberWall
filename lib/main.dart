@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:async';
+import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
-  runApp(const VaultXApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  final String? savedPin = prefs.getString('user_vault_pin');
+
+  runApp(VaultXApp(isFirstTime: savedPin == null));
 }
 
 class VaultXApp extends StatelessWidget {
-  const VaultXApp({Key? key}) : super(key: key);
+  final bool isFirstTime;
+  const VaultXApp({Key? key, required this.isFirstTime}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +30,7 @@ class VaultXApp extends StatelessWidget {
           surface: Color(0xFF111111),
         ),
       ),
-      home: const AppLockScreen(),
+      home: isFirstTime ? const SetupPinScreen() : const AppLockScreen(),
     );
   }
 }
@@ -49,7 +55,130 @@ class VaultItem {
       );
 }
 
-// ==================== APP LOCK SCREEN ====================
+// ==================== 1. FIRST TIME SETUP PIN SCREEN ====================
+class SetupPinScreen extends StatefulWidget {
+  const SetupPinScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SetupPinScreen> createState() => _SetupPinScreenState();
+}
+
+class _SetupPinScreenState extends State<SetupPinScreen> {
+  final TextEditingController _pinController = TextEditingController();
+  final TextEditingController _confirmPinController = TextEditingController();
+  String _errorMessage = '';
+
+  void _savePin() async {
+    String pin = _pinController.text.trim();
+    String confirmPin = _confirmPinController.text.trim();
+
+    if (pin.length != 4 || int.tryParse(pin) == null) {
+      setState(() {
+        _errorMessage = 'Please enter a valid 4-digit PIN!';
+      });
+      return;
+    }
+
+    if (pin != confirmPin) {
+      setState(() {
+        _errorMessage = 'PINs do not match! Try again.';
+      });
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_vault_pin', pin);
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const VaultHomeScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.security, size: 80, color: Colors.greenAccent),
+                const SizedBox(height: 20),
+                const Text(
+                  'SETUP VAULTX PIN',
+                  style: TextStyle(color: Colors.greenAccent, fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'monospace', letterSpacing: 2),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Create your master 4-digit PIN to secure your workspace.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 30),
+                SizedBox(
+                  width: 220,
+                  child: TextField(
+                    controller: _pinController,
+                    obscureText: true,
+                    maxLength: 4,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 24, letterSpacing: 8, fontFamily: 'monospace'),
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      labelText: 'Set 4-Digit PIN',
+                      labelStyle: TextStyle(color: Colors.cyanAccent),
+                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.greenAccent)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: 220,
+                  child: TextField(
+                    controller: _confirmPinController,
+                    obscureText: true,
+                    maxLength: 4,
+                    keyboardType: TextInputType.number,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.greenAccent, fontSize: 24, letterSpacing: 8, fontFamily: 'monospace'),
+                    decoration: const InputDecoration(
+                      counterText: '',
+                      labelText: 'Confirm PIN',
+                      labelStyle: TextStyle(color: Colors.cyanAccent),
+                      enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.greenAccent)),
+                      focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                    ),
+                  ),
+                ),
+                if (_errorMessage.isNotEmpty) ...[
+                  const SizedBox(height: 15),
+                  Text(_errorMessage, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                ],
+                const SizedBox(height: 30),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.greenAccent,
+                    foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
+                  ),
+                  onPressed: _savePin,
+                  child: const Text('SECURE & START', style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'monospace', fontSize: 16)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== 2. APP LOCK SCREEN ====================
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({Key? key}) : super(key: key);
 
@@ -59,17 +188,22 @@ class AppLockScreen extends StatefulWidget {
 
 class _AppLockScreenState extends State<AppLockScreen> {
   final TextEditingController _pinController = TextEditingController();
+  String _errorMessage = '';
 
-  void _verifyPin() {
-    if (_pinController.text == '1234') {
+  void _verifyPin() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? correctPin = prefs.getString('user_vault_pin');
+
+    if (_pinController.text.trim() == correctPin) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const VaultHomeScreen()),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('ACCESS DENIED: Invalid Passcode! (Try 1234)'), backgroundColor: Colors.red),
-      );
+      setState(() {
+        _errorMessage = 'ACCESS DENIED: Invalid Passcode!';
+        _pinController.clear();
+      });
     }
   }
 
@@ -82,15 +216,15 @@ class _AppLockScreenState extends State<AppLockScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.security, size: 80, color: Colors.greenAccent),
+              const Icon(Icons.lock_outline, size: 80, color: Colors.cyanAccent),
               const SizedBox(height: 20),
               const Text(
                 '// V A U L T X _ L O C K',
-                style: TextStyle(color: Colors.greenAccent, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'monospace', letterSpacing: 2),
+                style: TextStyle(color: Colors.cyanAccent, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'monospace', letterSpacing: 2),
               ),
               const SizedBox(height: 10),
               const Text(
-                'Enter passcode to decrypt workspace',
+                'Enter your master PIN to decrypt workspace',
                 style: TextStyle(color: Colors.grey, fontSize: 13),
               ),
               const SizedBox(height: 30),
@@ -105,15 +239,19 @@ class _AppLockScreenState extends State<AppLockScreen> {
                   style: const TextStyle(color: Colors.greenAccent, fontSize: 24, letterSpacing: 8, fontFamily: 'monospace'),
                   decoration: const InputDecoration(
                     counterText: '',
-                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.greenAccent)),
-                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                    enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                    focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.greenAccent)),
                   ),
                 ),
               ),
+              if (_errorMessage.isNotEmpty) ...[
+                const SizedBox(height: 15),
+                Text(_errorMessage, style: const TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+              ],
               const SizedBox(height: 20),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.greenAccent,
+                  backgroundColor: Colors.cyanAccent,
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
                 ),
@@ -128,7 +266,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 }
 
-// ==================== VAULT HOME SCREEN ====================
+// ==================== 3. VAULT HOME SCREEN ====================
 class VaultHomeScreen extends StatefulWidget {
   const VaultHomeScreen({Key? key}) : super(key: key);
 
@@ -611,7 +749,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
   }
 }
 
-// ==================== ADMIN PANEL SCREEN ====================
+// ==================== 4. ADMIN PANEL SCREEN ====================
 class AdminPanelScreen extends StatelessWidget {
   final List<VaultItem> vaultItems;
 
