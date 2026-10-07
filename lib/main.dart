@@ -35,9 +35,6 @@ class _WallpaperHomePageState extends State<WallpaperHomePage> {
   List wallpapers = [];
   bool isLoading = true;
 
-  // Pexels Free API Key (Yeh public test key hai, baad mein apni laga lena)
-  final String apiKey = '563492ad6f91700001000101b025d57b4f574d6f827bc529bfa52973';
-
   @override
   void initState() {
     super.initState();
@@ -45,13 +42,13 @@ class _WallpaperHomePageState extends State<WallpaperHomePage> {
   }
 
   Future<void> fetchWallpapers() async {
-    final url = Uri.parse('https://api.pexels.com/v1/search?query=cyberpunk&per_page=30');
+    // Using Picsum API which requires no API key and provides high quality images
+    final url = Uri.parse('https://picsum.photos/v2/list?page=1&limit=30');
     try {
-      final response = await http.get(url, headers: {'Authorization': apiKey});
+      final response = await http.get(url);
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
         setState(() {
-          wallpapers = data['photos'];
+          wallpapers = jsonDecode(response.body);
           isLoading = false;
         });
       } else {
@@ -92,7 +89,8 @@ class _WallpaperHomePageState extends State<WallpaperHomePage> {
                   itemCount: wallpapers.length,
                   itemBuilder: (context, index) {
                     final photo = wallpapers[index];
-                    final imageUrl = photo['src']['medium'];
+                    // Constructing a high-res image URL from Picsum ID
+                    final imageUrl = 'https://picsum.photos/id/${photo['id']}/600/900';
                     return ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
