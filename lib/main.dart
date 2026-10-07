@@ -109,9 +109,9 @@ class CyberBackground extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF020904), // Deep dark green-black
-            Color(0xFF010402), // Pitch cyber black
-            Color(0xFF02060A), // Hint of dark cyber blue
+            Color(0xFF020904),
+            Color(0xFF010402),
+            Color(0xFF02060A),
           ],
         ),
       ),
@@ -783,4 +783,245 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                     color: const Color(0xFF0D1410),
                     onSelected: (value) {
                       if (value == 'export') _showExportDialog();
-                      if
+                      if (value == 'import') _showImportDialog();
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'export',
+                        child: Text('Backup Vault', style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace')),
+                      ),
+                      const PopupMenuItem(
+                        value: 'import',
+                        child: Text('Restore Vault', style: TextStyle(color: Colors.cyanAccent, fontFamily: 'monospace')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              PreferredSize(
+                preferredSize: const Size.fromHeight(2),
+                child: Column(
+                  children: [
+                    if (_holdProgress > 0)
+                      LinearProgressIndicator(
+                        value: _holdProgress,
+                        backgroundColor: Colors.black,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.redAccent),
+                      ),
+                    Container(color: Colors.greenAccent.withOpacity(0.3), height: 1),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Colors.greenAccent))
+                    : Stack(
+                        children: [
+                          const Center(
+                            child: Opacity(
+                              opacity: 0.05,
+                              child: VaultLogo(size: 220),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0A140E),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.greenAccent.withOpacity(0.4)),
+                                  ),
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.lock_clock, color: Colors.greenAccent, size: 20),
+                                      SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'STATUS: SECURE // PERSISTENT STORAGE ACTIVE',
+                                          style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                const Text(
+                                  'STORED RECORDS',
+                                  style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 10),
+                                Expanded(
+                                  child: _vaultItems.isEmpty
+                                      ? Center(
+                                          child: Text(
+                                            'VAULT EMPTY\nTap + to store secure credentials',
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(color: Colors.white24, fontFamily: 'monospace', height: 1.5),
+                                          ),
+                                        )
+                                      : ListView.builder(
+                                          itemCount: _vaultItems.length,
+                                          itemBuilder: (context, index) {
+                                            final item = _vaultItems[index];
+                                            return Container(
+                                              margin: const EdgeInsets.only(bottom: 12),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF070C09),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.greenAccent.withOpacity(0.15)),
+                                              ),
+                                              child: ListTile(
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                                leading: const Icon(Icons.vpn_key_outlined, color: Colors.greenAccent),
+                                                title: Text(
+                                                  item.title,
+                                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                                ),
+                                                subtitle: Padding(
+                                                  padding: const EdgeInsets.only(top: 4.0),
+                                                  child: Text(
+                                                    item.secretData,
+                                                    style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                                  ),
+                                                ),
+                                                trailing: Text(
+                                                  item.date,
+                                                  style: const TextStyle(color: Colors.white30, fontSize: 11),
+                                                ),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.greenAccent,
+          foregroundColor: Colors.black,
+          onPressed: _addNewNote,
+          child: const Icon(Icons.add),
+        ),
+      ),
+    );
+  }
+}
+
+// ==================== 4. ADMIN PANEL SCREEN ====================
+class AdminPanelScreen extends StatelessWidget {
+  final List<VaultItem> vaultItems;
+
+  const AdminPanelScreen({Key? key, required this.vaultItems}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: CyberBackground(
+        child: Column(
+          children: [
+            AppBar(
+              title: const Text(
+                '// ADMIN MASTER OVERVIEW',
+                style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 16),
+              ),
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              iconTheme: const IconThemeData(color: Colors.redAccent),
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(color: Colors.redAccent.withOpacity(0.5), height: 1),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.redAccent.withOpacity(0.5)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.admin_panel_settings, color: Colors.redAccent),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'LOGGED IN AS: aanu // TOTAL RECORDS: ${vaultItems.length}',
+                              style: const TextStyle(color: Colors.redAccent, fontSize: 11, fontFamily: 'monospace', fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'ALL USER STORED VAULT DATABASE',
+                      style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: vaultItems.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'NO RECORDS FOUND IN MASTER DB',
+                                style: TextStyle(color: Colors.white24, fontFamily: 'monospace'),
+                              ),
+                            )
+                          : ListView.builder(
+                              itemCount: vaultItems.length,
+                              itemBuilder: (index) {
+                                final item = vaultItems[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF140808),
+                                            borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                                  ),
+                                  child: ListTile(
+                                    leading: const Icon(Icons.storage, color: Colors.redAccent),
+                                    title: Text(
+                                      item.title,
+                                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
+                                    ),
+                                    subtitle: Padding(
+                                      padding: const EdgeInsets.only(top: 4.0),
+                                      child: Text(
+                                        'Data: ${item.secretData}',
+                                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                      ),
+                                    ),
+                                    trailing: Text(
+                                      item.date,
+                                      style: const TextStyle(color: Colors.white30, fontSize: 11),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
