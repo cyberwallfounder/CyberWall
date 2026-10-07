@@ -3,17 +3,17 @@ import 'dart:convert';
 import 'dart:async';
 
 void main() {
-  runApp(const CyberVaultApp());
+  runApp(const VaultXApp());
 }
 
-class CyberVaultApp extends StatelessWidget {
-  const CyberVaultApp({Key? key}) : super(key: key);
+class VaultXApp extends StatelessWidget {
+  const VaultXApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'CyberVault',
+      title: 'VAULTX',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF050505),
@@ -24,7 +24,7 @@ class CyberVaultApp extends StatelessWidget {
           surface: Color(0xFF111111),
         ),
       ),
-      home: const AppLockScreen(), // Pehle Lock Screen aayegi
+      home: const AppLockScreen(),
     );
   }
 }
@@ -49,7 +49,7 @@ class VaultItem {
       );
 }
 
-// ==================== 1. APP LOCK SCREEN ====================
+// ==================== APP LOCK SCREEN ====================
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({Key? key}) : super(key: key);
 
@@ -59,14 +59,9 @@ class AppLockScreen extends StatefulWidget {
 
 class _AppLockScreenState extends State<AppLockScreen> {
   final TextEditingController _pinController = TextEditingController();
-  bool _isLocked = true;
 
   void _verifyPin() {
-    // Default Vault Passcode is set to 1234 (User can change or we can keep it secure)
     if (_pinController.text == '1234') {
-      setState(() {
-        _isLocked = false;
-      });
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const VaultHomeScreen()),
@@ -90,7 +85,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
               const Icon(Icons.security, size: 80, color: Colors.greenAccent),
               const SizedBox(height: 20),
               const Text(
-                '// SECURE_VAULT_LOCK',
+                '// V A U L T X _ L O C K',
                 style: TextStyle(color: Colors.greenAccent, fontSize: 20, fontWeight: FontWeight.bold, fontFamily: 'monospace', letterSpacing: 2),
               ),
               const SizedBox(height: 10),
@@ -133,7 +128,7 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 }
 
-// ==================== 2. VAULT HOME SCREEN ====================
+// ==================== VAULT HOME SCREEN ====================
 class VaultHomeScreen extends StatefulWidget {
   const VaultHomeScreen({Key? key}) : super(key: key);
 
@@ -142,18 +137,16 @@ class VaultHomeScreen extends StatefulWidget {
 }
 
 class _VaultHomeScreenState extends State<VaultHomeScreen> {
-  // Default items removed completely! Clean slate for user.
   final List<VaultItem> _vaultItems = [];
 
   Timer? _holdTimer;
   double _holdProgress = 0.0;
 
-  // 10-Second Long Press Detect Start for Admin Panel
   void _startAdminHold(LongPressStartDetails details) {
     _holdProgress = 0.0;
     _holdTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
       setState(() {
-        _holdProgress += 0.01; // 10 seconds total (100 * 100ms)
+        _holdProgress += 0.01;
         if (_holdProgress >= 1.0) {
           timer.cancel();
           _holdProgress = 0.0;
@@ -246,13 +239,13 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
   String _encryptData(String plainText) {
     Codec<String, String> stringToBase64 = utf8.fuse(base64);
     String encoded = stringToBase64.encode(plainText);
-    return "CYBER_SECURE_$encoded";
+    return "VAULTX_SECURE_$encoded";
   }
 
   String _decryptData(String encryptedText) {
     try {
-      if (!encryptedText.startsWith("CYBER_SECURE_")) return encryptedText;
-      String rawBase64 = encryptedText.replaceFirst("CYBER_SECURE_", "");
+      if (!encryptedText.startsWith("VAULTX_SECURE_")) return encryptedText;
+      String rawBase64 = encryptedText.replaceFirst("VAULTX_SECURE_", "");
       Codec<String, String> stringToBase64 = utf8.fuse(base64);
       return stringToBase64.decode(rawBase64);
     } catch (e) {
@@ -464,8 +457,8 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: const Text(
-            '// C Y B E R _ V A U L T',
-            style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 18),
+            '// V A U L T X',
+            style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, letterSpacing: 3, fontSize: 18),
           ),
           centerTitle: true,
           backgroundColor: Colors.black,
@@ -507,7 +500,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
         ),
         body: Stack(
           children: [
-            // Background Watermark Logo for New Users
             Center(
               child: Opacity(
                 opacity: 0.05,
@@ -517,11 +509,11 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                     Icon(Icons.fingerprint, size: 120, color: Colors.greenAccent),
                     SizedBox(height: 10),
                     Text(
-                      'SECRETVAULTX',
+                      'VAULTX',
                       style: TextStyle(
-                        fontSize: 28,
+                        fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 6,
+                        letterSpacing: 8,
                         fontFamily: 'monospace',
                       ),
                     ),
@@ -529,7 +521,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                 ),
               ),
             ),
-            // Main Content Area
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -620,7 +611,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
   }
 }
 
-// ==================== 3. ADMIN PANEL SCREEN ====================
+// ==================== ADMIN PANEL SCREEN ====================
 class AdminPanelScreen extends StatelessWidget {
   final List<VaultItem> vaultItems;
 
