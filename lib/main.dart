@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 void main() {
@@ -7,32 +7,36 @@ void main() {
 }
 
 class CyberWallApp extends StatelessWidget {
-  const CyberWallApp({super.key});
+  const CyberWallApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CyberWall',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0A0A0A),
-        primaryColor: const Color(0xFF00FF66),
+      title: 'CyberWall',
+      theme: ThemeData(
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: Colors.black,
+        primaryColor: Colors.greenAccent,
       ),
-      home: const WallpaperHomeScreen(),
+      home: const WallpaperHomePage(),
     );
   }
 }
 
-class WallpaperHomeScreen extends StatefulWidget {
-  const WallpaperHomeScreen({super.key});
+class WallpaperHomePage extends StatefulWidget {
+  const WallpaperHomePage({Key? key}) : super(key: key);
 
   @override
-  State<WallpaperHomeScreen> createState() => _WallpaperHomeScreenState();
+  _WallpaperHomePageState createState() => _WallpaperHomePageState();
 }
 
-class _WallpaperHomeScreenState extends State<WallpaperHomeScreen> {
+class _WallpaperHomePageState extends State<WallpaperHomePage> {
   List wallpapers = [];
   bool isLoading = true;
+
+  // Pexels Free API Key (Yeh public test key hai, baad mein apni laga lena)
+  final String apiKey = '563492ad6f91700001000101b025d57b4f574d6f827bc529bfa52973';
 
   @override
   void initState() {
@@ -41,18 +45,17 @@ class _WallpaperHomeScreenState extends State<WallpaperHomeScreen> {
   }
 
   Future<void> fetchWallpapers() async {
+    final url = Uri.parse('https://api.pexels.com/v1/search?query=cyberpunk&per_page=30');
     try {
-      final response = await http.get(
-        Uri.parse('https://api.pexels.com/v1/curated?per_page=15'),
-        headers: {
-          'Authorization': '563492ad6f91700001000101d297a7e8b8354cbfa88b698cfb3cd2b7'
-        },
-      );
-
+      final response = await http.get(url, headers: {'Authorization': apiKey});
       if (response.statusCode == 200) {
-        var data = jsonDecode(response.body);
+        final data = jsonDecode(response.body);
         setState(() {
           wallpapers = data['photos'];
+          isLoading = false;
+        });
+      } else {
+        setState(() {
           isLoading = false;
         });
       }
@@ -69,55 +72,45 @@ class _WallpaperHomeScreenState extends State<WallpaperHomeScreen> {
       appBar: AppBar(
         title: const Text(
           'C Y B E R W A L L',
-          style: TextStyle(
-            color: Color(0xFF00FF66),
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2.0,
-          ),
+          style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold, letterSpacing: 2),
         ),
-        backgroundColor: Colors.black,
         centerTitle: true,
+        backgroundColor: Colors.black,
       ),
       body: isLoading
-          ? const Center(
-              child: CircularProgressIndicator(
-                color: Color(0xFF00FF66),
-              ),
-            )
-          : GridView.builder(
-              padding: const EdgeInsets.all(10),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 0.65,
-              ),
-              itemCount: wallpapers.length,
-              itemBuilder: (context, index) {
-                var photo = wallpapers[index];
-                var imageUrl = photo['src']['medium'];
-
-                return ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return Container(
-                        color: Colors.grey[900],
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Color(0xFF00FF66),
-                          ),
-                        ),
-                      );
-                    },
+          ? const Center(child: CircularProgressIndicator(color: Colors.greenAccent))
+          : wallpapers.isEmpty
+              ? const Center(child: Text('No wallpapers found!', style: TextStyle(color: Colors.white)))
+              : GridView.builder(
+                  padding: const EdgeInsets.all(10),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                    childAspectRatio: 0.65,
                   ),
-                );
-              },
-            ),
+                  itemCount: wallpapers.length,
+                  itemBuilder: (context, index) {
+                    final photo = wallpapers[index];
+                    final imageUrl = photo['src']['medium'];
+                    return ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            color: Colors.grey[900],
+                            child: const Center(
+                              child: CircularProgressIndicator(color: Colors.greenAccent, strokeWidth: 2),
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                ),
     );
   }
 }
