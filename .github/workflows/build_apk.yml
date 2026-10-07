@@ -27,15 +27,15 @@ jobs:
 
       - name: Create Flutter project structure
         run: |
-          # Purane files ko bacha kar naya android/ios template generate kar rahe hain
-          mkdir -p temp_code
-          cp -r lib temp_code/
-          cp pubspec.yaml temp_code/
-          flutter create . --org com.cyberwall.app --project-name cyberwall --force
-          rm -rf lib
-          cp -r temp_code/lib .
-          cp temp_code/pubspec.yaml .
-          rm -rf temp_code
+          mkdir -p temp_backup
+          cp -r lib temp_backup/
+          cp pubspec.yaml temp_backup/
+          rm -rf lib pubspec.yaml android ios web windows macos linux
+          flutter create . --org com.cyberwall.app --project-name cyberwall
+          rm -rf lib pubspec.yaml
+          cp -r temp_backup/lib .
+          cp temp_backup/pubspec.yaml .
+          rm -rf temp_backup
 
       - name: Install dependencies
         run: flutter pub get
