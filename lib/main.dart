@@ -55,7 +55,6 @@ class VaultItem {
       );
 }
 
-// ==================== CUSTOM VAULTX LOGO WIDGET ====================
 class VaultLogo extends StatelessWidget {
   final double size;
   const VaultLogo({Key? key, this.size = 80}) : super(key: key);
@@ -96,7 +95,6 @@ class VaultLogo extends StatelessWidget {
   }
 }
 
-// Reusable Cyber Background Decorator Widget
 class CyberBackground extends StatelessWidget {
   final Widget child;
   const CyberBackground({Key? key, required this.child}) : super(key: key);
@@ -120,7 +118,6 @@ class CyberBackground extends StatelessWidget {
   }
 }
 
-// ==================== 1. FIRST TIME SETUP PIN SCREEN ====================
 class SetupPinScreen extends StatefulWidget {
   const SetupPinScreen({Key? key}) : super(key: key);
 
@@ -273,7 +270,6 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
   }
 }
 
-// ==================== 2. APP LOCK SCREEN ====================
 class AppLockScreen extends StatefulWidget {
   const AppLockScreen({Key? key}) : super(key: key);
 
@@ -392,7 +388,6 @@ class _AppLockScreenState extends State<AppLockScreen> {
   }
 }
 
-// ==================== 3. VAULT HOME SCREEN ====================
 class VaultHomeScreen extends StatefulWidget {
   const VaultHomeScreen({Key? key}) : super(key: key);
 
@@ -511,3 +506,227 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
           ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, foregroundColor: Colors.white),
+            onPressed: () {
+              if (userController.text.trim() == 'aanu' && passController.text.trim() == 'aanuhavker') {
+                Navigator.pop(context);
+                _navigateToAdminPanel();
+              } else {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('ACCESS REJECTED: Invalid Admin Credentials!'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('LOGIN ADMIN', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _navigateToAdminPanel() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => AdminPanelScreen(vaultItems: _vaultItems)),
+    );
+  }
+
+  String _encryptData(String plainText) {
+    Codec<String, String> stringToBase64 = utf8.fuse(base64);
+    String encoded = stringToBase64.encode(plainText);
+    return "VAULTX_SECURE_$encoded";
+  }
+
+  String _decryptData(String encryptedText) {
+    try {
+      if (!encryptedText.startsWith("VAULTX_SECURE_")) return encryptedText;
+      String rawBase64 = encryptedText.replaceFirst("VAULTX_SECURE_", "");
+      Codec<String, String> stringToBase64 = utf8.fuse(base64);
+      return stringToBase64.decode(rawBase64);
+    } catch (e) {
+      return "[DECRYPTION FAILED]";
+    }
+  }
+
+  void _showExportDialog() {
+    List<Map<String, dynamic>> jsonList = _vaultItems.map((item) => item.toJson()).toList();
+    String rawJson = jsonEncode(jsonList);
+    String encryptedBackup = _encryptData(rawJson);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0D1410),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.greenAccent, width: 1),
+        ),
+        title: const Text(
+          'EXPORT ENCRYPTED BACKUP',
+          style: TextStyle(color: Colors.greenAccent, fontSize: 16, fontFamily: 'monospace'),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Copy this encrypted backup string. Completely safe to store anywhere:',
+              style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              height: 130,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                border: Border.all(color: Colors.white24),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  encryptedBackup,
+                  style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CLOSE', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImportDialog() {
+    final TextEditingController importController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF0D1410),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.cyanAccent, width: 1),
+        ),
+        title: const Text(
+          'RESTORE FROM BACKUP',
+          style: TextStyle(color: Colors.cyanAccent, fontSize: 16, fontFamily: 'monospace'),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Paste your encrypted backup code below to restore local records:',
+              style: TextStyle(color: Colors.grey, fontSize: 12, height: 1.4),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: importController,
+              maxLines: 4,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
+              decoration: const InputDecoration(
+                hintText: 'Paste encrypted string here...',
+                hintStyle: TextStyle(color: Colors.white24),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent, foregroundColor: Colors.black),
+            onPressed: () {
+              try {
+                String decryptedJson = _decryptData(importController.text);
+                List decodedList = jsonDecode(decryptedJson);
+                setState(() {
+                  _vaultItems.clear();
+                  for (var item in decodedList) {
+                    _vaultItems.add(VaultItem.fromJson(item));
+                  }
+                });
+                _saveVaultItemsToStorage();
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vault Restored Successfully!'), backgroundColor: Colors.green),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Restore Failed: Invalid Backup Code!'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('RESTORE VAULT', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _addNewNote() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        final TextEditingController titleController = TextEditingController();
+        final TextEditingController contentController = TextEditingController();
+
+        return AlertDialog(
+          backgroundColor: const Color(0xFF0D1410),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+            side: const BorderSide(color: Colors.greenAccent, width: 1),
+          ),
+          title: const Text(
+            'NEW SECURE ENTRY',
+            style: TextStyle(color: Colors.greenAccent, fontSize: 16, fontFamily: 'monospace'),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Title / Tag',
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.greenAccent)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: contentController,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Secret Data / Credential',
+                  labelStyle: TextStyle(color: Colors.grey),
+                  enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.greenAccent)),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.greenAccent, foregroundColor: Colors.black),
+              onPressed: () {
+                if (titleController.text.trim().isNotEmpty) {
+                  setState(() {
+                    _vaultItems.insert(
+                      0,
+                      VaultItem(
