@@ -1,7 +1,6 @@
 name: vaultx
-description: A secure cryptographic vault app in Flutter.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev.
-
+description: A secure local vault app.
+publish_to: 'none'
 version: 1.0.0+1
 
 environment:
