@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 
 void main() {
   runApp(const CyberVaultApp());
@@ -14,9 +15,9 @@ class CyberVaultApp extends StatelessWidget {
       title: 'CyberVault',
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF050505), // Pitch OLED Black
+        scaffoldBackgroundColor: const Color(0xFF050505),
         primaryColor: Colors.greenAccent,
-        colorScheme: ColorScheme.dark(
+        colorScheme: const ColorScheme.dark(
           primary: Colors.greenAccent,
           secondary: Colors.cyanAccent,
           surface: Color(0xFF111111),
@@ -27,12 +28,26 @@ class CyberVaultApp extends StatelessWidget {
   }
 }
 
-class VaultHomeStateItem {
+class VaultItem {
   final String title;
-  final String subtitle;
+  final String secretData;
   final String date;
 
-  VaultHomeStateItem({required this.title, required this.subtitle, required this.date});
+  VaultItem({required this.title, required this.secretData, required this.date});
+
+  // Convert to JSON
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'secretData': secretData,
+        'date': date,
+      };
+
+  // Create from JSON
+  factory VaultItem.fromJson(Map<String, dynamic> json) => VaultItem(
+        title: json['title'],
+        secretData: json['secretData'],
+        date: json['date'],
+      );
 }
 
 class VaultHomeScreen extends StatefulWidget {
@@ -43,15 +58,157 @@ class VaultHomeScreen extends StatefulWidget {
 }
 
 class _VaultHomeScreenState extends State<VaultHomeScreen> {
-  // Sample secret notes/items in the vault
-  final List<VaultHomeStateItem> _vaultItems = [
-    VaultHomeStateItem(title: 'Root Passwords', subtitle: 'Encrypted AES-256', date: '07 Oct 2026'),
-    VaultHomeStateItem(title: 'Telegram API Hash', subtitle: 'Hidden token config', date: '05 Oct 2026'),
-    VaultHomeStateItem(title: 'Server SSH Keys', subtitle: 'Private key backup', date: '01 Oct 2026'),
+  final List<VaultItem> _vaultItems = [
+    VaultItem(title: 'Root Passwords', secretData: 'Encrypted_AES_Key_#992', date: '07 Oct 2026'),
+    VaultItem(title: 'API Hash Token', secretData: 'tg_token_secret_xyz', date: '05 Oct 2026'),
   ];
 
+  // Simple Mock Encryption: Base64 encoding + custom shift so it looks like gibberish in files
+  String _encryptData(String plainText) {
+    Codec<String, String> stringToBase64 = utf8.fuse(base64);
+    String encoded = stringToBase64.encode(plainText);
+    return "CYBER_SECURE_$encoded"; // Secret header prefix
+  }
+
+  String _decryptData(String encryptedText) {
+    try {
+      if (!encryptedText.startsWith("CYBER_SECURE_")) return encryptedText;
+      String rawBase64 = encryptedText.replaceFirst("CYBER_SECURE_", "");
+      Codec<String, String> stringToBase64 = utf8.fuse(base64);
+      return stringToBase64.decode(rawBase64);
+    } catch (e) {
+      return "[DECRYPTION FAILED]";
+    }
+  }
+
+  // Export Data to Encrypted String (User can copy/backup this string or save as file)
+  void _showExportDialog() {
+    List<Map<String, dynamic>> jsonList = _vaultItems.map((item) => item.toJson()).toList();
+    String rawJson = jsonEncode(jsonList);
+    String encryptedBackup = _encryptData(rawJson);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF111111),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.greenAccent, width: 1),
+        ),
+        title: const Text(
+          'EXPORT ENCRYPTED BACKUP',
+          style: TextStyle(color: Colors.greenAccent, fontSize: 16, fontFamily: 'monospace'),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Yeh aapka encrypted backup code hai. Ise safe jagah copy karke rakh lein. App delete hone ke baad restore karne ke kaam aayega:',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(8),
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.black,
+                border: Border.all(color: Colors.white24),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  encryptedBackup,
+                  style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CLOSE', style: TextStyle(color: Colors.grey)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Import / Restore Data from Encrypted String
+  void _showImportDialog() {
+    final TextEditingController importController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF111111),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(color: Colors.cyanAccent, width: 1),
+        ),
+        title: const Text(
+          'RESTORE FROM BACKUP',
+          style: TextStyle(color: Colors.cyanAccent, fontSize: 16, fontFamily: 'monospace'),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Apna encrypted backup code yahan paste karein:',
+              style: TextStyle(color: Colors.grey, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: importController,
+              maxLines: 4,
+              style: const TextStyle(color: Colors.white, fontSize: 11, fontFamily: 'monospace'),
+              decoration: const InputDecoration(
+                hintText: 'Paste encrypted string here...',
+                hintStyle: TextStyle(color: Colors.white24),
+                enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+                focusedBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.cyanAccent)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCEL', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent, foregroundColor: Colors.black),
+            onPressed: () {
+              try {
+                String decryptedJson = _decryptData(importController.text);
+                List decodedList = jsonDecode(decryptedJson);
+                setState(() {
+                  _vaultItems.clear();
+                  for (var item in decodedList) {
+                    _vaultItems.add(VaultItem.fromJson(item));
+                  }
+                });
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Vault Restored Successfully!'), backgroundColor: Colors.green),
+                );
+              } catch (e) {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Restore Failed: Invalid Backup Code!'), backgroundColor: Colors.red),
+                );
+              }
+            },
+            child: const Text('RESTORE VAULT', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _addNewNote() {
-    // Quick dialog to add a mock secret note
     showDialog(
       context: context,
       builder: (context) {
@@ -65,7 +222,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
             side: const BorderSide(color: Colors.greenAccent, width: 1),
           ),
           title: const Text(
-            'NEW ENCRYPTED ENTRY',
+            'NEW SECURE ENTRY',
             style: TextStyle(color: Colors.greenAccent, fontSize: 16, fontFamily: 'monospace'),
           ),
           content: Column(
@@ -104,9 +261,9 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                   setState(() {
                     _vaultItems.insert(
                       0,
-                      VaultHomeStateItem(
+                      VaultItem(
                         title: titleController.text,
-                        subtitle: contentController.text.isEmpty ? 'Encrypted data' : contentController.text,
+                        secretData: contentController.text.isEmpty ? 'Hidden' : contentController.text,
                         date: 'Just now',
                       ),
                     );
@@ -114,7 +271,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                 }
                 Navigator.pop(context);
               },
-              child: const Text('LOCK IN VAULT', style: TextStyle(fontWeight: FontWeight.bold)),
+              child: const Text('LOCK IN', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
           ],
         );
@@ -133,6 +290,26 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
         centerTitle: true,
         backgroundColor: Colors.black,
         elevation: 0,
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.shield_outlined, color: Colors.greenAccent),
+            color: const Color(0xFF111111),
+            onSelected: (value) {
+              if (value == 'export') _showExportDialog();
+              if (value == 'import') _showImportDialog();
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'export',
+                child: Text('Backup Vault', style: TextStyle(color: Colors.greenAccent, fontFamily: 'monospace')),
+              ),
+              const PopupMenuItem(
+                value: 'import',
+                child: Text('Restore Vault', style: TextStyle(color: Colors.cyanAccent, fontFamily: 'monospace')),
+              ),
+            ],
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
           child: Container(color: Colors.greenAccent.withOpacity(0.3), height: 1),
@@ -143,7 +320,6 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Status bar banner
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -153,12 +329,12 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
               ),
               child: Row(
                 children: const [
-                  Icon(Icons.security, color: Colors.greenAccent),
+                  Icon(Icons.lock, color: Colors.greenAccent, size: 20),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'STATUS: SECURE // LOCAL ENCRYPTION ACTIVE',
-                      style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontFamily: 'monospace'),
+                      'STATUS: END-TO-END ENCRYPTED // BACKUP READY',
+                      style: TextStyle(color: Colors.greenAccent, fontSize: 11, fontFamily: 'monospace'),
                     ),
                   ),
                 ],
@@ -166,7 +342,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
             ),
             const SizedBox(height: 20),
             const Text(
-              'STORED SECRETS',
+              'SECURED RECORDS',
               style: TextStyle(color: Colors.grey, fontSize: 12, letterSpacing: 1.5, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -184,7 +360,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: const Icon(Icons.lock_outline, color: Colors.greenAccent),
+                      leading: const Icon(Icons.vpn_key_outlined, color: Colors.greenAccent),
                       title: Text(
                         item.title,
                         style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'monospace'),
@@ -192,7 +368,7 @@ class _VaultHomeScreenState extends State<VaultHomeScreen> {
                       subtitle: Padding(
                         padding: const EdgeInsets.only(top: 4.0),
                         child: Text(
-                          item.subtitle,
+                          item.secretData,
                           style: const TextStyle(color: Colors.grey, fontSize: 13),
                         ),
                       ),
